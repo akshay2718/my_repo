@@ -1,6 +1,33 @@
 FROM ubuntu:java-8
 LABEL MAINTAINER="akshay"
 WORKDIR /usr/local
+RUN apt update && apt install  openssh-server sudo -y
+# Create a user “sshuser” and group “sshgroup”
+RUN addgroup hadoop
+RUN useradd -ms /bin/bash -g hadoop hduser
+RUN adduser hduser sudo
+# Create sshuser directory in home
+RUN mkdir -p /home/hduser/.ssh
+# Copy the ssh public key in the authorized_keys file. The idkey.pub below is a public key file you get from ssh-keygen. They are under ~/.ssh directory by default.
+COPY id_rsa /home/hduser/.ssh/id_rsa
+COPY id_rsa.pub /home/hduser/.ssh/id_rsa.pub
+COPY id_rsa.pub /home/hduser/.ssh/authorized_keys
+# change ownership of the key file. 
+RUN chown hduser:hadoop /home/hduser/.ssh/id_rsa && chmod 600 /home/hduser/.ssh/id_rsa
+RUN chown hduser:hadoop /home/hduser/.ssh/id_rsa.pub && chmod 600 /home/hduser/.ssh/id_rsa.pub
+RUN chown hduser:hadoop /home/hduser/.ssh/authorized_keys && chmod 600 /home/hduser/.ssh/authorized_keys
+# java installation
+RUN  mkdir -p /usr/local/hadoop
+WORKDIR /usr/local
+RUN apt-get install openjdk-8-jdk -y
+RUN su hduser
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV PATH=$JAVA_HOME/bin:$PATH
+# Start SSH service
+RUN service ssh start
+# Expose docker port 22
+EXPOSE 22
+
 ADD https://archive.apache.org/dist/hadoop/core/hadoop-1.2.1/hadoop-1.2.1.tar.gz .
 RUN tar -xvf hadoop-1.2.1.tar.gz
 RUN mv hadoop-1.2.1/* hadoop
@@ -29,3 +56,4 @@ RUN chown -R hduser:hadoop /app/hadoop/tmp
 EXPOSE 50075 50070 50060 50030 54310 54311
 WORKDIR /usr/local/hadoop/bin
 RUN chmod 750 /app/hadoop/tmp
+CMD ["/usr/sbin/sshd","-D"]
