@@ -1,4 +1,4 @@
-FROM ubuntu:java-8
+FROM ubuntu:18.04
 LABEL MAINTAINER="akshay"
 WORKDIR /usr/local
 RUN apt update && apt install  openssh-server sudo -y
